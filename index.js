@@ -25,12 +25,20 @@ async function run() {
  
 
         const tourPackageCollection = client.db("tour-package").collection("packages");
-        const bookingPackageCollection = client.db("booking-pckage").collection("booking");
+        const bookingPackageCollection = client.db("tour-package").collection("booking");
 
         app.get('/', (req, res) => {
             res.send('Hello World!');
         });
 
+
+        app.get("/updateMyPosted/:id", async (req, res) => {
+            const id = req.params.id
+            const quary = { _id: new ObjectId(id) }
+            const result = await tourPackageCollection.findOne(quary)
+            res.send(result)
+
+        })
 
         app.get("/appTourPackages",async(req,res)=>{
             const result=  await tourPackageCollection.find().toArray()
@@ -60,6 +68,22 @@ async function run() {
             const bookPakage = req.body
             const result= await bookingPackageCollection.insertOne(bookPakage)
             res.send(result)
+
+        })
+      
+        app.put("/updateTourPackages",async(req,res)=>{
+
+            const id = req.params.id
+            const filter = {_id: new ObjectId(id)}
+            const options = { upsert: true };
+            const updatedTask = req.body;
+            const updateDoc = {
+                $set: {
+                  updatedTask
+                },
+              };
+              const result = await tourPackageCollection.updateMany(filter,updateDoc,options)
+              res.send(result)
 
         })
 
