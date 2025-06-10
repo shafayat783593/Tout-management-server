@@ -87,6 +87,13 @@ async function run() {
 
         })
 
+        app.delete("/deleteMyPost/:id",async(req,res)=>{
+         const id= req.params.id
+         const filter = {_id: new ObjectId(id)}
+         const result = await tourPackageCollection.deleteOne(filter)
+         res.send(result)
+        })
+
         await client.db("admin").command({ ping: 1 });
         console.log("Connected to MongoDB!");
     } catch (error) {
