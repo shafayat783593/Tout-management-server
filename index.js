@@ -57,6 +57,25 @@ async function run() {
             const result = await tourPackageCollection.find(quary).toArray()
             res.send(result)
         })
+        app.get("/myBooking/:email",async(req,res)=>{
+            const email = req.params.email
+            const quary = {
+                buyerEmail :email}
+            console.log(quary.
+                buyerEmail)
+            const result = await bookingPackageCollection.find(quary).toArray()
+            res.send(result)
+        })
+
+
+        app.get("/search", async (req, res) => {
+            const searchQuery = req.query.q;
+            console.log(searchQuery)
+            searchByName = {title: { $regex: searchQuery, $options: "i" }}
+            const result = await tourPackageCollection.find(searchByName).toArray();
+
+            res.send(result);
+          });
 
         app.post("/addTourPackages", async (req, res) => {
             const newPackage = req.body;
