@@ -22,7 +22,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
- 
+
 
         const tourPackageCollection = client.db("tour-package").collection("packages");
         const bookingPackageCollection = client.db("tour-package").collection("booking");
@@ -40,27 +40,28 @@ async function run() {
 
         })
 
-        app.get("/appTourPackages",async(req,res)=>{
-            const result=  await tourPackageCollection.find().toArray()
+        app.get("/appTourPackages", async (req, res) => {
+            const result = await tourPackageCollection.find().toArray()
             res.send(result)
         })
-        app.get("/PackageDetails/:id",async(req,res)=>{
+        app.get("/PackageDetails/:id", async (req, res) => {
             const id = req.params.id
-            const quary = {_id: new ObjectId(id)}
+            const quary = { _id: new ObjectId(id) }
             const result = await tourPackageCollection.findOne(quary)
             res.send(result)
         })
-        app.get("/manageMyPackages/:email",async(req,res)=>{
+        app.get("/manageMyPackages/:email", async (req, res) => {
             const email = req.params.email
-            const quary = { guidEmail :email}
+            const quary = { guidEmail: email }
             console.log(quary.guidEmail)
             const result = await tourPackageCollection.find(quary).toArray()
             res.send(result)
         })
-        app.get("/myBooking/:email",async(req,res)=>{
+        app.get("/myBooking/:email", async (req, res) => {
             const email = req.params.email
             const quary = {
-                buyerEmail :email}
+                buyerEmail: email
+            }
             console.log(quary.
                 buyerEmail)
             const result = await bookingPackageCollection.find(quary).toArray()
@@ -68,14 +69,15 @@ async function run() {
         })
 
 
+
         app.get("/search", async (req, res) => {
             const searchQuery = req.query.q;
             console.log(searchQuery)
-            searchByName = {title: { $regex: searchQuery, $options: "i" }}
+            searchByName = { title: { $regex: searchQuery, $options: "i" } }
             const result = await tourPackageCollection.find(searchByName).toArray();
 
             res.send(result);
-          });
+        });
 
         app.post("/addTourPackages", async (req, res) => {
             const newPackage = req.body;
@@ -83,40 +85,59 @@ async function run() {
             res.send(result);
         });
 
-        app.post("/bookTourPackage",async(req,res)=>{
+        app.post("/bookTourPackage", async (req, res) => {
             const bookPakage = req.body
-            const result= await bookingPackageCollection.insertOne(bookPakage)
+            const result = await bookingPackageCollection.insertOne(bookPakage)
             res.send(result)
 
         })
-      
-        app.put("/updateTourPackages",async(req,res)=>{
+        app.patch("/bookingsStatus/:id", async (req, res) => {
+            const id = req.params.id
+
+            const filter = { _id: new ObjectId(id) }
+            console.log(" id .....................", id)
+            const options = { upsert: true }
+            const updatedTask = req.body
+            const updatedDoc = {
+                $set:
+                    updatedTask
+                
+
+            }
+            console.log(updatedDoc)
+            const result = await bookingPackageCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+
+        app.put("/updateTourPackages/:id", async (req, res) => {
 
             const id = req.params.id
-            const filter = {_id: new ObjectId(id)}
+            const filter = { _id: new ObjectId(id) }
+            console.log(filter)
             const options = { upsert: true };
-            const updatedTask = req.body;
+            const updatedTask = req.body
+            console.log(updatedTask)
             const updateDoc = {
-                $set: {
+                $set:
                   updatedTask
-                },
-              };
-              const result = await tourPackageCollection.updateMany(filter,updateDoc,options)
-              res.send(result)
+                
+            };
+            const result = await tourPackageCollection.updateMany(filter, updateDoc, options)
+            res.send(result)
 
         })
 
-        app.delete("/deleteMyPost/:id",async(req,res)=>{
-         const id= req.params.id
-         const filter = {_id: new ObjectId(id)}
-         const result = await tourPackageCollection.deleteOne(filter)
-         res.send(result)
+        app.delete("/deleteMyPost/:id", async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: new ObjectId(id) }
+            const result = await tourPackageCollection.deleteOne(filter)
+            res.send(result)
         })
 
         await client.db("admin").command({ ping: 1 });
         console.log("Connected to MongoDB!");
     } catch (error) {
-       
+
     }
 }
 
