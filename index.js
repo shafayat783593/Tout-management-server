@@ -36,7 +36,7 @@ const client = new MongoClient(uri, {
 // jwt middlewares.......................
 const virefyJWT = async (req, res, next) => {
     const token = req?.headers?.authorization?.split(' ')[1]
-    console.log(token)
+   
     if (!token) return res.status(401).send({ message: "Unauthorized Accdss!" })
     // verify token using firebase admin  sdk
     try {
