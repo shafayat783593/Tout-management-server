@@ -1,8 +1,10 @@
 const dotenv = require('dotenv');
 dotenv.config();
-
+var admin = require("firebase-admin");
 const express = require('express');
 const cors = require('cors');
+var jwt = require('jsonwebtoken');
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
@@ -12,6 +14,16 @@ app.use(express.json());
 const port = process.env.PORT || 3000;
 const uri = process.env.MONGODB_URI;
 
+// var serviceAccount = require("./serviceAccountKey.json");'
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf-8")
+var serviceAccount = JSON.parse(decoded)
+console.log(serviceAccount)
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+
+
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -19,6 +31,25 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+
+// jwt middlewares.......................
+const virefyJWT = async (req, res, next) => {
+    const token = req?.headers?.authorization?.split(' ')[1]
+    console.log(token)
+    if (!token) return res.status(401).send({ message: "Unauthorized Accdss!" })
+    // verify token using firebase admin  sdk
+    try {
+        const decded = await admin.auth().verifyIdToken(token)
+        req.tokenEmail = decded.email
+        next()
+        console.log(decded)
+    } catch (err) {
+        console.log(err)
+        return res.status(401).send({ message: "Unauthorized Accdss!" })
+    }
+
+}
 
 async function run() {
     try {
@@ -30,6 +61,14 @@ async function run() {
         app.get('/', (req, res) => {
             res.send('Hello World!');
         });
+        // genetate jwt
+        app.post("/jwt", (req, res) => {
+            const user = { email: req.body.email }
+            const token = jwt.sign(user, process.env.FB_SERVICE_KEY, {
+                expiresIn: "7d",
+            })
+
+        })
 
 
         app.get("/updateMyPosted/:id", async (req, res) => {
@@ -50,15 +89,25 @@ async function run() {
             const result = await tourPackageCollection.findOne(quary)
             res.send(result)
         })
-        app.get("/manageMyPackages/:email", async (req, res) => {
+        app.get("/manageMyPackages/:email", virefyJWT, async (req, res) => {
+            const decodedEmail = req.tokenEmail
+
             const email = req.params.email
+            if (decodedEmail !== email) {
+                return res.status(403).send({ mdssage: "Forbiddne Access" })
+            }
             const quary = { guidEmail: email }
             console.log(quary.guidEmail)
             const result = await tourPackageCollection.find(quary).toArray()
             res.send(result)
         })
-        app.get("/myBooking/:email", async (req, res) => {
+        app.get("/myBooking/:email",virefyJWT, async (req, res) => {
+            const decodedEmail = req.tokenEmail
+
             const email = req.params.email
+            if(decodedEmail !==email ){
+                return res.status(403).send({ mdssage: "Forbiddne Access" })
+            }
             const quary = {
                 buyerEmail: email
             }
@@ -79,6 +128,7 @@ async function run() {
             res.send(result);
         });
 
+
         app.post("/addTourPackages", async (req, res) => {
             const newPackage = req.body;
             const result = await tourPackageCollection.insertOne(newPackage);
@@ -95,13 +145,12 @@ async function run() {
             const id = req.params.id
 
             const filter = { _id: new ObjectId(id) }
-            console.log(" id .....................", id)
             const options = { upsert: true }
             const updatedTask = req.body
             const updatedDoc = {
                 $set:
                     updatedTask
-                
+
 
             }
             console.log(updatedDoc)
@@ -119,8 +168,8 @@ async function run() {
             console.log(updatedTask)
             const updateDoc = {
                 $set:
-                  updatedTask
-                
+                    updatedTask
+
             };
             const result = await tourPackageCollection.updateMany(filter, updateDoc, options)
             res.send(result)
