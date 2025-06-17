@@ -61,6 +61,7 @@ async function run() {
         app.get('/', (req, res) => {
             res.send('Hello World!');
         });
+
         // genetate jwt
         app.post("/jwt", (req, res) => {
             const user = { email: req.body.email }
@@ -101,11 +102,11 @@ async function run() {
             const result = await tourPackageCollection.find(quary).toArray()
             res.send(result)
         })
-        app.get("/myBooking/:email",virefyJWT, async (req, res) => {
+        app.get("/myBooking/:email", virefyJWT, async (req, res) => {
             const decodedEmail = req.tokenEmail
 
             const email = req.params.email
-            if(decodedEmail !==email ){
+            if (decodedEmail !== email) {
                 return res.status(403).send({ mdssage: "Forbiddne Access" })
             }
             const quary = {
@@ -119,15 +120,36 @@ async function run() {
 
 
 
+
+
+
+
+
         app.get("/search", async (req, res) => {
-            const searchQuery = req.query.q;
-            console.log(searchQuery)
-            searchByName = { title: { $regex: searchQuery, $options: "i" } }
-            const result = await tourPackageCollection.find(searchByName).toArray();
-
-            res.send(result);
+            try {
+                const searchQuery = req.query.q;
+                
+                if (!searchQuery || searchQuery.trim() === "") {
+                    // If empty search, return all tours
+                    const allTours = await tourPackageCollection.find({}).toArray();
+                    return res.send(allTours);
+                }
+        
+                const searchConditions = {
+                    $or: [
+                        { tourName: { $regex: searchQuery, $options: "i" } },
+                        { destination: { $regex: searchQuery, $options: "i" } }
+                    ]
+                };
+        
+                const results = await tourPackageCollection.find(searchConditions).toArray();
+                res.send(results);
+            } catch (error) {
+                console.error("Search error:", error);
+                res.status(500).send({ error: "Internal server error" });
+            }
         });
-
+   
 
         app.post("/addTourPackages", async (req, res) => {
             const newPackage = req.body;
@@ -141,6 +163,18 @@ async function run() {
             res.send(result)
 
         })
+        // booking Count ...................
+        app.patch("/bookingCount/:id", async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+
+            const updatedDoc = {
+                $inc: { bookingCount: 1 }
+            };
+
+            const result = await tourPackageCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        });
         app.patch("/bookingsStatus/:id", async (req, res) => {
             const id = req.params.id
 
