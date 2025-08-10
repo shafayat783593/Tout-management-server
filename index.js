@@ -34,22 +34,29 @@ const client = new MongoClient(uri, {
 
 
 // jwt middlewares.......................
-const virefyJWT = async (req, res, next) => {
-    const token = req?.headers?.authorization?.split(' ')[1]
-   
-    if (!token) return res.status(401).send({ message: "Unauthorized Accdss!" })
-    // verify token using firebase admin  sdk
-    try {
-        const decded = await admin.auth().verifyIdToken(token)
-        req.tokenEmail = decded.email
-        next()
-        console.log(decded)
-    } catch (err) {
-        console.log(err)
-        return res.status(401).send({ message: "Unauthorized Accdss!" })
-    }
 
-}
+const virefyJWT = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).send({ message: "Unauthorized Access! No token provided" });
+        }
+        const token = authHeader.split(' ')[1];
+        if (!token) {
+            return res.status(401).send({ message: "Unauthorized Access! Invalid token format" });
+        }
+
+        console.log("Verifying token:", token); // DEBUG log
+
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        req.tokenEmail = decodedToken.email;
+        next();
+    } catch (error) {
+        console.error("JWT verification error:", error);
+        return res.status(401).send({ message: "Unauthorized Access! Invalid or expired token" });
+    }
+};
+
 
 async function run() {
     try {
@@ -215,6 +222,13 @@ async function run() {
             const filter = { _id: new ObjectId(id) }
             const result = await tourPackageCollection.deleteOne(filter)
             res.send(result)
+        })
+        app.get("/spacialOffer",async(req,res)=>{
+            // const spacialOffer = req.body
+            const quary = { specialPackage: "yes", }
+            const result = await tourPackageCollection.find(quary).toArray()
+            res.send(result)
+            
         })
 
         await client.db("admin").command({ ping: 1 });
